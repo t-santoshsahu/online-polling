@@ -38,6 +38,7 @@ export interface PollOption {
   poll_id: string
   option_text: string
   image_url: string | null
+  image_urls: string[]
   display_order: number
 }
 

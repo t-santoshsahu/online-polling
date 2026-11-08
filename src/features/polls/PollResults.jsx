@@ -18,7 +18,13 @@ export default function PollResults({ pollId, pollType, resultVisibility = 'alwa
         .rpc('get_poll_results', { p_poll_id: pollId })
       if (resultError) throw resultError
 
-      const rows = data ?? []
+      const { data: options, error: optionsError } = await getSupabaseClient()
+        .from('poll_options')
+        .select('id, image_urls')
+        .eq('poll_id', pollId)
+      if (optionsError) throw optionsError
+      const galleries = new Map((options ?? []).map((option) => [option.id, option.image_urls]))
+      const rows = (data ?? []).map((option) => ({ ...option, image_urls: galleries.get(option.option_id) }))
       setResults(rows)
       setTotalBallots(Number(rows[0]?.total_ballots ?? 0))
       setError('')
@@ -93,7 +99,7 @@ export default function PollResults({ pollId, pollType, resultVisibility = 'alwa
             <li className="flex items-center justify-between gap-3 py-2.5 text-sm" key={option.option_id}>
               <span className="flex min-w-0 items-center gap-3">
                 <span className="grid size-6 shrink-0 place-items-center rounded-md bg-[var(--forest)] text-xs font-bold text-white">{index + 1}</span>
-                {option.image_url && <ImageLightbox className="size-10 rounded-lg bg-[#edf1e8]" src={option.image_url} alt={option.option_text || `Option ${index + 1}`} />}
+                {option.image_url && <ImageLightbox className="size-10 rounded-lg bg-[#edf1e8]" src={option.image_url} images={option.image_urls} alt={option.option_text || `Option ${index + 1}`} />}
                 <span className="truncate">{option.option_text || `Image option ${index + 1}`}</span>
               </span>
               <span className="shrink-0 rounded-md bg-[#f0f3eb] px-2 py-1 text-xs font-bold tabular-nums text-[var(--leaf)]">{option.borda_score} pts</span>
@@ -110,7 +116,7 @@ export default function PollResults({ pollId, pollType, resultVisibility = 'alwa
               <li className="min-w-0" key={option.option_id}>
                 <div className="mb-1 flex justify-between gap-3 text-sm">
                   <span className="flex min-w-0 items-center gap-2.5">
-                    {option.image_url && <ImageLightbox className="size-10 rounded-lg bg-[#edf1e8]" src={option.image_url} alt={option.option_text || 'Poll option image'} />}
+                    {option.image_url && <ImageLightbox className="size-10 rounded-lg bg-[#edf1e8]" src={option.image_url} images={option.image_urls} alt={option.option_text || 'Poll option image'} />}
                     <span className="truncate font-medium">{option.option_text || `Image option ${option.display_order}`}</span>
                   </span>
                   <span className="shrink-0 text-xs font-bold tabular-nums text-[var(--muted)]">{formatPercent(percentage)} · {votes}</span>

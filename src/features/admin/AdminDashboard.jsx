@@ -3,6 +3,7 @@ import Papa from 'papaparse'
 import { getSupabaseClient } from '../../supabaseClient.js'
 import { formatDeadlineIST, hasDeadlinePassed } from '../../lib/time'
 import ImageLightbox from '../polls/ImageLightbox.jsx'
+import PollResults from '../polls/PollResults.jsx'
 
 const restrictions = [
   ['one_per_flat', 'One vote per flat'],
@@ -88,7 +89,7 @@ function parseCsv(file) {
 }
 
 function istInputToIso(value) {
-  const parsedDate = new Date(`${value}:00+05:30`)
+  const parsedDate = new Date(`${value.length === 16 ? `${value}:00` : value}+05:30`)
   if (Number.isNaN(parsedDate.getTime())) {
     throw new Error('Enter a valid deadline in India Standard Time.')
   }
@@ -138,6 +139,9 @@ export default function AdminDashboard() {
   const [pollsLoading, setPollsLoading] = useState(true)
   const [pollsError, setPollsError] = useState('')
   const [polls, setPolls] = useState([])
+  const [resultsPollId, setResultsPollId] = useState(null)
+  const [editingPoll, setEditingPoll] = useState(null)
+  const [actionBusy, setActionBusy] = useState(false)
   const [availableFlats, setAvailableFlats] = useState([])
   const [flatsLoading, setFlatsLoading] = useState(true)
   const [flatsError, setFlatsError] = useState('')
@@ -153,8 +157,8 @@ export default function AdminDashboard() {
   const [resultVisibility, setResultVisibility] = useState('always')
   const [deadline, setDeadline] = useState('')
   const [options, setOptions] = useState([
-    { text: '', imageUrl: '' },
-    { text: '', imageUrl: '' },
+    { text: '', imageUrls: [''] },
+    { text: '', imageUrls: [''] },
   ])
 
   const loadPolls = useCallback(async () => {
@@ -222,19 +226,22 @@ export default function AdminDashboard() {
 
   async function handleCreatePoll(event) {
     event.preventDefault()
+    if (editingPoll?.hasVotes && !window.confirm('This poll has votes. Changing its title, description, option text or images can change the meaning of recorded votes. Continue?')) return
     setPollBusy(true)
     setPollMessage('')
     try {
       const pollOptions = options.map((option, index) => {
         const text = option.text.trim()
-        const rawImageUrl = option.imageUrl.trim()
-        if (!text && !rawImageUrl) {
+        const imageUrls = option.imageUrls.map((url) => url.trim()).filter(Boolean).map(normalizeImageUrl)
+        if (!text && !imageUrls.length) {
           throw new Error(`Option ${index + 1} needs text, an image URL, or both.`)
         }
 
         return {
+          ...(option.id ? { id: option.id } : {}),
           option_text: text || null,
-          image_url: rawImageUrl ? normalizeImageUrl(rawImageUrl) : null,
+          image_url: imageUrls[0] ?? null,
+          image_urls: imageUrls,
         }
       })
 
@@ -247,7 +254,8 @@ export default function AdminDashboard() {
         throw new Error('Select at least one flat, or choose all flats.')
       }
 
-      const { error } = await getSupabaseClient().rpc('admin_create_scoped_poll_with_options', {
+      const { error } = await getSupabaseClient().rpc(editingPoll ? 'admin_update_poll' : 'admin_create_scoped_poll_with_gallery', {
+        ...(editingPoll ? { p_poll_id: editingPoll.id } : {}),
         p_title: title.trim(),
         p_description: description.trim(),
         p_poll_type: pollType,
@@ -259,23 +267,81 @@ export default function AdminDashboard() {
         p_result_visibility: resultVisibility,
       })
       if (error) throw error
-      setPollMessage('Poll created.')
+      setPollMessage(editingPoll ? 'Poll updated.' : 'Poll created.')
+      setEditingPoll(null)
       setTitle('')
       setDescription('')
       setDeadline('')
       setResultVisibility('always')
       setOptions([
-        { text: '', imageUrl: '' },
-        { text: '', imageUrl: '' },
+        { text: '', imageUrls: [''] },
+        { text: '', imageUrls: [''] },
       ])
       setFlatScope('all')
       setSelectedFlats([])
       setFlatSearch('')
       await loadPolls()
     } catch (error) {
-      setPollMessage(error instanceof Error ? error.message : 'Poll creation failed.')
+      setPollMessage(error?.message || (editingPoll ? 'Poll update failed.' : 'Poll creation failed.'))
     } finally {
       setPollBusy(false)
+    }
+  }
+
+  function resetPollForm() {
+    setEditingPoll(null)
+    setTitle('')
+    setDescription('')
+    setPollType('single_choice')
+    setRestriction('one_per_flat')
+    setDeadline('')
+    setResultVisibility('always')
+    setOptions([{ text: '', imageUrls: [''] }, { text: '', imageUrls: [''] }])
+    setFlatScope('all')
+    setSelectedFlats([])
+    setFlatSearch('')
+    setPollMessage('')
+  }
+
+  async function editPoll(pollId) {
+    setActionBusy(true)
+    setPollsError('')
+    try {
+      const { data, error } = await getSupabaseClient().rpc('admin_get_poll_for_edit', { p_poll_id: pollId })
+      if (error) throw error
+      setEditingPoll({ id: data.id, hasVotes: data.has_votes })
+      setTitle(data.title)
+      setDescription(data.description ?? '')
+      setPollType(data.poll_type)
+      setRestriction(data.restriction)
+      setResultVisibility(data.result_visibility)
+      setDeadline(new Date(new Date(data.deadline).getTime() + 330 * 60_000).toISOString().slice(0, 19))
+      setFlatScope(data.flat_scope)
+      setSelectedFlats(data.flat_numbers)
+      setOptions(data.options.map((option) => ({ id: option.id, text: option.option_text ?? '', imageUrls: option.image_urls?.length ? option.image_urls : option.image_url ? [option.image_url] : [''] })))
+      setPollMessage('')
+      document.getElementById('poll-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } catch (error) {
+      setPollsError(error.message || 'Could not load poll for editing.')
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
+  async function deletePoll(poll) {
+    if (!window.confirm(`Permanently delete "${poll.title}" and all its options, votes, and ballot entries? This cannot be undone.`)) return
+    setActionBusy(true)
+    setPollsError('')
+    try {
+      const { error } = await getSupabaseClient().rpc('admin_delete_poll', { p_poll_id: poll.id })
+      if (error) throw error
+      if (editingPoll?.id === poll.id) resetPollForm()
+      if (resultsPollId === poll.id) setResultsPollId(null)
+      await loadPolls()
+    } catch (error) {
+      setPollsError(error.message || 'Could not delete poll.')
+    } finally {
+      setActionBusy(false)
     }
   }
 
@@ -315,11 +381,11 @@ export default function AdminDashboard() {
           {csvMessage && <p className="mt-3 text-sm text-white/85" role="status">{csvMessage}</p>}
         </div>
 
-        <form className="grid gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_14px_36px_rgba(29,48,41,0.055)] sm:p-6" onSubmit={handleCreatePoll}>
+        <form id="poll-form" className="grid gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface)] p-5 shadow-[0_14px_36px_rgba(29,48,41,0.055)] sm:p-6" onSubmit={handleCreatePoll}>
           <div className="flex items-center gap-3 border-b border-[var(--line)] pb-4">
             <span className="grid size-9 place-items-center rounded-lg bg-[#e8eddf] text-sm font-bold text-[var(--leaf)]">02</span>
             <div>
-              <h2 className="font-serif text-xl font-semibold">Create poll</h2>
+              <h2 className="font-serif text-xl font-semibold">{editingPoll ? 'Edit poll' : 'Create poll'}</h2>
               <p className="mt-0.5 text-xs text-[var(--muted)]">Set the question, audience, and ballot choices.</p>
             </div>
           </div>
@@ -331,17 +397,18 @@ export default function AdminDashboard() {
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Voting method">
-              <select className={inputClassName} value={pollType} onChange={(event) => setPollType(event.target.value)}>
+              <select className={inputClassName} disabled={editingPoll?.hasVotes} value={pollType} onChange={(event) => setPollType(event.target.value)}>
                 <option value="single_choice">Single choice</option>
                 <option value="ranked_choice">Ranked choice — top 3</option>
               </select>
             </Field>
             <Field label="Voter restriction">
-              <select className={inputClassName} value={restriction} onChange={(event) => setRestriction(event.target.value)}>
+              <select className={inputClassName} disabled={editingPoll?.hasVotes} value={restriction} onChange={(event) => setRestriction(event.target.value)}>
                 {restrictions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </Field>
           </div>
+          {editingPoll?.hasVotes && <p className="text-xs text-[#8e422d]">Voting method, voter restriction, and the number of options cannot change after votes have been cast.</p>}
           {pollType === 'ranked_choice' && (
             <p className="rounded-lg bg-[#f0f3eb] px-3 py-2 text-xs leading-5 text-[var(--muted)]">
               Voters will choose exactly three options and assign positions 1, 2, and 3.
@@ -393,12 +460,11 @@ export default function AdminDashboard() {
             </select>
           </Field>
           <Field label="Deadline (India Standard Time)">
-            <input className={inputClassName} type="datetime-local" required value={deadline} onChange={(event) => setDeadline(event.target.value)} />
+            <input className={inputClassName} type="datetime-local" step="1" required value={deadline} onChange={(event) => setDeadline(event.target.value)} />
           </Field>
           <fieldset className="grid gap-3">
             <legend className="text-sm font-medium text-[#31392f]">Poll options</legend>
             {options.map((option, index) => {
-              const previewUrl = safeImagePreviewUrl(option.imageUrl)
               return (
                 <div className="grid gap-2 border-b border-[var(--line)] py-3 last:border-0 sm:grid-cols-[1fr_1fr_auto]" key={index}>
                   <label className="grid gap-1 text-xs font-medium text-[#667064]">
@@ -411,24 +477,33 @@ export default function AdminDashboard() {
                     />
                   </label>
                   <div className="grid gap-2">
-                    <label className="grid gap-1 text-xs font-medium text-[#667064]">
-                      Image URL
-                      <input
-                        className={inputClassName}
-                        type="url"
-                        inputMode="url"
-                        value={option.imageUrl}
-                        onChange={(event) => setOptions((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, imageUrl: event.target.value } : item))}
-                        placeholder="https://... or public Google Drive link"
-                      />
-                    </label>
-                    {previewUrl && <ImageLightbox className="size-16 rounded-lg bg-[#edf1e8]" src={previewUrl} alt={option.text.trim() || `Option ${index + 1} preview`} />}
+                    {option.imageUrls.map((imageUrl, imageIndex) => {
+                      const previewUrl = safeImagePreviewUrl(imageUrl)
+                      return (
+                        <div className="flex items-end gap-2" key={imageIndex}>
+                          <label className="grid min-w-0 flex-1 gap-1 text-xs font-medium text-[#667064]">
+                            Image URL {imageIndex + 1}
+                            <input
+                              className={inputClassName}
+                              type="url"
+                              inputMode="url"
+                              value={imageUrl}
+                              onChange={(event) => setOptions((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, imageUrls: item.imageUrls.map((url, urlIndex) => urlIndex === imageIndex ? event.target.value : url) } : item))}
+                              placeholder="https://... or public Google Drive link"
+                            />
+                          </label>
+                          {previewUrl && <ImageLightbox className="size-11 rounded-lg bg-[#edf1e8]" src={previewUrl} alt={option.text.trim() || `Option ${index + 1} image ${imageIndex + 1}`} />}
+                          {option.imageUrls.length > 1 && <button className="grid size-11 shrink-0 place-items-center rounded-lg border border-[var(--line)] text-xl text-[var(--muted)] hover:text-[var(--coral)]" type="button" title="Remove image" aria-label={`Remove image ${imageIndex + 1} from option ${index + 1}`} onClick={() => setOptions((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, imageUrls: item.imageUrls.filter((_, urlIndex) => urlIndex !== imageIndex) } : item))}>&times;</button>}
+                        </div>
+                      )
+                    })}
+                    <button className="justify-self-start text-xs font-semibold text-[var(--leaf)] disabled:opacity-40" type="button" disabled={option.imageUrls.length >= 20} onClick={() => setOptions((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, imageUrls: [...item.imageUrls, ''] } : item))}>+ Add image</button>
                   </div>
                   <button
                     className="self-end rounded-lg border border-[var(--line)] px-3 py-2 text-sm font-semibold text-[var(--muted)] hover:border-[var(--coral)] hover:text-[var(--coral)] disabled:opacity-40"
                     type="button"
                     aria-label={`Remove option ${index + 1}`}
-                    disabled={options.length <= 2}
+                    disabled={options.length <= 2 || editingPoll?.hasVotes}
                     onClick={() => setOptions((current) => current.filter((_, itemIndex) => itemIndex !== index))}
                   >Remove</button>
                 </div>
@@ -437,14 +512,16 @@ export default function AdminDashboard() {
             <button
               className="justify-self-start rounded-lg border border-[var(--line)] bg-white px-3 py-2 text-sm font-semibold text-[var(--leaf)] hover:border-[var(--leaf)]"
               type="button"
-              onClick={() => setOptions((current) => [...current, { text: '', imageUrl: '' }])}
+              disabled={editingPoll?.hasVotes}
+              onClick={() => setOptions((current) => [...current, { text: '', imageUrls: [''] }])}
             >Add option</button>
             <p className="rounded-lg bg-[#f0f3eb] px-3 py-2 text-xs leading-5 text-[var(--muted)]">Each option needs text, an image, or both. For Google Drive, allow anyone with the link to view the image.</p>
           </fieldset>
           <div className="flex flex-wrap items-center gap-4">
             <button className="min-h-11 rounded-lg bg-[var(--forest)] px-5 text-sm font-bold text-white shadow-sm hover:bg-[var(--leaf)] disabled:opacity-50" type="submit" disabled={pollBusy}>
-              {pollBusy ? 'Creating...' : 'Create poll'}
+              {pollBusy ? 'Saving...' : editingPoll ? 'Save changes' : 'Create poll'}
             </button>
+            {editingPoll && <button className="min-h-11 rounded-lg border border-[var(--line)] px-4 text-sm font-semibold" type="button" disabled={pollBusy} onClick={resetPollForm}>Cancel editing</button>}
             {pollMessage && <p className="text-sm font-medium text-[var(--leaf)]" role="status">{pollMessage}</p>}
           </div>
         </form>
@@ -483,6 +560,8 @@ export default function AdminDashboard() {
                   <th className="py-3 pr-4 font-bold">Results visible</th>
                   <th className="py-3 pr-4 font-bold">Deadline (IST)</th>
                   <th className="py-3 pr-3 font-bold">Status</th>
+                  <th className="py-3 pr-3 font-bold">Results</th>
+                  <th className="py-3 pr-3 font-bold">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -502,6 +581,8 @@ export default function AdminDashboard() {
                       <td className="py-3">
                         <span className={status === 'Open' ? 'inline-flex rounded-full bg-[#e4efdf] px-2.5 py-1 text-xs font-bold text-[var(--leaf)]' : 'inline-flex rounded-full bg-[#edf0eb] px-2.5 py-1 text-xs font-semibold text-[var(--muted)]'}>{status}</span>
                       </td>
+                      <td className="py-3 pr-3"><button className="text-sm font-semibold text-[var(--leaf)] disabled:opacity-40" type="button" disabled={poll.is_deleted} onClick={() => setResultsPollId((current) => current === poll.id ? null : poll.id)}>{resultsPollId === poll.id ? 'Hide results' : 'View results'}</button></td>
+                      <td className="py-3 pr-3 whitespace-nowrap"><button className="mr-3 text-sm font-semibold text-[var(--leaf)] disabled:opacity-40" type="button" disabled={actionBusy || poll.is_deleted} onClick={() => void editPoll(poll.id)}>Edit</button><button className="text-sm font-semibold text-[#a63b28] disabled:opacity-40" type="button" disabled={actionBusy} onClick={() => void deletePoll(poll)}>Delete</button></td>
                     </tr>
                   )
                 })}
@@ -509,6 +590,12 @@ export default function AdminDashboard() {
             </table>
           </div>
         )}
+        {polls.filter((poll) => poll.id === resultsPollId && !poll.is_deleted).map((poll) => (
+          <div key={poll.id}>
+            <h3 className="mt-5 text-sm font-bold text-[var(--ink)]">{poll.title}</h3>
+            <PollResults pollId={poll.id} pollType={poll.poll_type} resultVisibility={poll.result_visibility} canViewResults />
+          </div>
+        ))}
       </section>
     </div>
   )

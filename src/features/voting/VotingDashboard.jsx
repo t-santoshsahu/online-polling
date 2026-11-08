@@ -68,7 +68,7 @@ export default function VotingDashboard({ isAdmin = false }) {
       const optionsResult = visiblePollIds.length
         ? await supabase
           .from('poll_options')
-          .select('id, poll_id, option_text, image_url, display_order')
+          .select('id, poll_id, option_text, image_url, image_urls, display_order')
           .in('poll_id', visiblePollIds)
           .order('display_order', { ascending: true })
         : { data: [], error: null }
@@ -229,7 +229,7 @@ export default function VotingDashboard({ isAdmin = false }) {
                             <label className="min-w-0 flex-1 cursor-pointer font-medium" htmlFor={`option-${poll.id}-${option.id}`}>
                               {option.option_text || `Image option ${option.display_order}`}
                             </label>
-                            {option.image_url && <ImageLightbox className="size-14 rounded-lg bg-[#edf1e8]" src={option.image_url} alt={option.option_text || `Option ${option.display_order}`} />}
+                            {option.image_url && <ImageLightbox className="size-14 rounded-lg bg-[#edf1e8]" src={option.image_url} images={option.image_urls} alt={option.option_text || `Option ${option.display_order}`} />}
                           </div>
                         ))}
                       </fieldset>
@@ -262,7 +262,7 @@ export default function VotingDashboard({ isAdmin = false }) {
                                   }))
                                 }}
                               />
-                              {option.image_url && <ImageLightbox className="size-12 rounded-lg bg-[#edf1e8]" src={option.image_url} alt={label} />}
+                              {option.image_url && <ImageLightbox className="size-12 rounded-lg bg-[#edf1e8]" src={option.image_url} images={option.image_urls} alt={label} />}
                               <span className="min-w-[7rem] flex-1 text-sm font-medium">{label}</span>
                               {isSelected && (
                                 <label className="flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">
