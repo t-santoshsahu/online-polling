@@ -18,7 +18,7 @@ We have already created the database tables in Supabase with the following schem
 1. Admin Auth: Email + OTP login using Supabase Auth.
 2. User CSV Upload: Admin can import users with flat numbers, resident types, and roles into the `users` table.
 3. Restrictions Check: Verify voter eligibility based on resident-type memberships and flat_number prior to accepting votes.
-4. Anonymous Voting: Save voter identity in `votes` (to lock future attempts) and choice payloads separately in `ballot_entries`. The `all_owners_and_residents` restriction permits one ballot per registered user, not one per flat.
+4. Vote Privacy: Each poll has identified or anonymous responses. New polls default to identified; existing polls remain anonymous. Link `ballot_entries` to `votes` only for identified polls; never change privacy after votes exist. Keep individual choices inaccessible to ordinary users. Historical choices may be unlinked. The `all_owners_and_residents` restriction permits one vote per registered user, not one per flat.
 5. Expiry & IST: Disable voting UI when `deadline` has passed relative to IST time.
 6. Ranked Choice Scoring: Calculate live aggregated results using Borda Count scoring.
 7. Session Expiry: Enforce 24-hour max session lifetime; terminate on explicit logout.

@@ -77,7 +77,7 @@ export default function PollResults({ pollId, pollType, resultVisibility = 'alwa
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="text-sm font-bold text-[var(--ink)]">Live results</h3>
         <p className="rounded-full bg-[#edf1e8] px-2.5 py-1 text-[10px] font-bold uppercase text-[var(--leaf)]">
-          {totalBallots} {totalBallots === 1 ? 'ballot' : 'ballots'}
+          {totalBallots} {totalBallots === 1 ? 'vote' : 'votes'}
         </p>
       </div>
 
@@ -105,7 +105,7 @@ export default function PollResults({ pollId, pollType, resultVisibility = 'alwa
               <span className="shrink-0 rounded-md bg-[#f0f3eb] px-2 py-1 text-xs font-bold tabular-nums text-[var(--leaf)]">{option.borda_score} pts</span>
             </li>
           ))}
-          {rankedResults.length === 0 && <li className="py-3 text-sm text-[var(--muted)]">No ranked ballots yet.</li>}
+          {rankedResults.length === 0 && <li className="py-3 text-sm text-[var(--muted)]">No ranked votes yet.</li>}
         </ol>
       ) : (
         <ul className="mt-3 grid gap-3">
@@ -127,7 +127,7 @@ export default function PollResults({ pollId, pollType, resultVisibility = 'alwa
               </li>
             )
           })}
-          {results.length === 0 && <li className="text-sm text-[var(--muted)]">No ballots yet.</li>}
+          {results.length === 0 && <li className="text-sm text-[var(--muted)]">No votes yet.</li>}
         </ul>
       )}
     </section>

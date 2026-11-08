@@ -154,6 +154,7 @@ export default function AdminDashboard() {
   const [description, setDescription] = useState('')
   const [pollType, setPollType] = useState('single_choice')
   const [restriction, setRestriction] = useState('one_per_flat')
+  const [responsePrivacy, setResponsePrivacy] = useState('identified')
   const [resultVisibility, setResultVisibility] = useState('always')
   const [deadline, setDeadline] = useState('')
   const [options, setOptions] = useState([
@@ -254,7 +255,7 @@ export default function AdminDashboard() {
         throw new Error('Select at least one flat, or choose all flats.')
       }
 
-      const { error } = await getSupabaseClient().rpc(editingPoll ? 'admin_update_poll' : 'admin_create_scoped_poll_with_gallery', {
+      const { error } = await getSupabaseClient().rpc(editingPoll ? 'admin_update_poll_with_privacy' : 'admin_create_poll_with_privacy', {
         ...(editingPoll ? { p_poll_id: editingPoll.id } : {}),
         p_title: title.trim(),
         p_description: description.trim(),
@@ -265,6 +266,7 @@ export default function AdminDashboard() {
         p_flat_scope: flatScope,
         p_flat_numbers: flatScope === 'selected' ? selectedFlats : [],
         p_result_visibility: resultVisibility,
+        p_response_privacy: responsePrivacy,
       })
       if (error) throw error
       setPollMessage(editingPoll ? 'Poll updated.' : 'Poll created.')
@@ -273,6 +275,7 @@ export default function AdminDashboard() {
       setDescription('')
       setDeadline('')
       setResultVisibility('always')
+      setResponsePrivacy('identified')
       setOptions([
         { text: '', imageUrls: [''] },
         { text: '', imageUrls: [''] },
@@ -294,6 +297,7 @@ export default function AdminDashboard() {
     setDescription('')
     setPollType('single_choice')
     setRestriction('one_per_flat')
+    setResponsePrivacy('identified')
     setDeadline('')
     setResultVisibility('always')
     setOptions([{ text: '', imageUrls: [''] }, { text: '', imageUrls: [''] }])
@@ -314,6 +318,7 @@ export default function AdminDashboard() {
       setDescription(data.description ?? '')
       setPollType(data.poll_type)
       setRestriction(data.restriction)
+      setResponsePrivacy(data.response_privacy)
       setResultVisibility(data.result_visibility)
       setDeadline(new Date(new Date(data.deadline).getTime() + 330 * 60_000).toISOString().slice(0, 19))
       setFlatScope(data.flat_scope)
@@ -329,7 +334,7 @@ export default function AdminDashboard() {
   }
 
   async function deletePoll(poll) {
-    if (!window.confirm(`Permanently delete "${poll.title}" and all its options, votes, and ballot entries? This cannot be undone.`)) return
+    if (!window.confirm(`Permanently delete "${poll.title}" and all its options and votes? This cannot be undone.`)) return
     setActionBusy(true)
     setPollsError('')
     try {
@@ -386,7 +391,7 @@ export default function AdminDashboard() {
             <span className="grid size-9 place-items-center rounded-lg bg-[#e8eddf] text-sm font-bold text-[var(--leaf)]">02</span>
             <div>
               <h2 className="font-serif text-xl font-semibold">{editingPoll ? 'Edit poll' : 'Create poll'}</h2>
-              <p className="mt-0.5 text-xs text-[var(--muted)]">Set the question, audience, and ballot choices.</p>
+              <p className="mt-0.5 text-xs text-[var(--muted)]">Set the question, audience, and voting choices.</p>
             </div>
           </div>
           <Field label="Poll title">
@@ -408,7 +413,13 @@ export default function AdminDashboard() {
               </select>
             </Field>
           </div>
-          {editingPoll?.hasVotes && <p className="text-xs text-[#8e422d]">Voting method, voter restriction, and the number of options cannot change after votes have been cast.</p>}
+          <Field label="Response privacy">
+            <select className={inputClassName} disabled={editingPoll?.hasVotes} value={responsePrivacy} onChange={(event) => setResponsePrivacy(event.target.value)}>
+              <option value="identified">Record voter and choices</option>
+              <option value="anonymous">Anonymous choices</option>
+            </select>
+          </Field>
+          {editingPoll?.hasVotes && <p className="text-xs text-[#8e422d]">Voting method, voter restriction, response privacy, and the number of options cannot change after votes have been cast.</p>}
           {pollType === 'ranked_choice' && (
             <p className="rounded-lg bg-[#f0f3eb] px-3 py-2 text-xs leading-5 text-[var(--muted)]">
               Voters will choose exactly three options and assign positions 1, 2, and 3.

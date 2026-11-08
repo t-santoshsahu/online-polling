@@ -136,9 +136,9 @@ export default function VotingDashboard({ isAdmin = false }) {
         ...current,
         [poll.id]: { eligible: true, has_voted: true },
       }))
-      setNotice('Your ballot has been recorded.')
+      setNotice('Your vote has been recorded.')
     } catch (submitError) {
-      setNotice(submitError instanceof Error ? submitError.message : 'Your ballot could not be submitted.')
+      setNotice(submitError instanceof Error ? submitError.message : 'Your vote could not be submitted.')
       void loadPolls()
     } finally {
       setBusyPollId(null)
@@ -250,7 +250,7 @@ export default function VotingDashboard({ isAdmin = false }) {
                                 aria-label={`Include ${label} in top three`}
                                 onChange={(event) => {
                                   if (event.target.checked && orderedIds.length >= 3) {
-                                    setNotice('Ranked ballots require exactly three choices.')
+                                    setNotice('Ranked votes require exactly three choices.')
                                     return
                                   }
                                   setNotice('')
@@ -292,7 +292,7 @@ export default function VotingDashboard({ isAdmin = false }) {
                       disabled={disabled || (poll.poll_type === 'ranked_choice' ? orderedOptions.length !== 3 : pollOptions.length < 2)}
                       onClick={() => void submitBallot(poll)}
                     >
-                      {busyPollId === poll.id ? 'Submitting...' : 'Submit ballot'}
+                      {busyPollId === poll.id ? 'Submitting...' : 'Submit vote'}
                     </button>
                     {expired && <p className="mt-2 text-sm font-medium text-[var(--coral)]">This poll has closed.</p>}
                   </div>

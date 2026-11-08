@@ -2,6 +2,7 @@ export type ResidentType = 'owner' | 'resident'
 export type UserRole = 'admin' | 'regular'
 export type PollType = 'single_choice' | 'ranked_choice'
 export type PollResultVisibility = 'always' | 'after_vote' | 'after_close'
+export type PollResponsePrivacy = 'identified' | 'anonymous'
 export type PollRestriction =
   | 'one_per_flat'
   | 'owners_only_one_per_flat'
@@ -28,6 +29,7 @@ export interface Poll {
   poll_type: PollType
   restriction: PollRestriction
   result_visibility: PollResultVisibility
+  response_privacy: PollResponsePrivacy
   deadline: string
   is_deleted: boolean
   created_by: string
@@ -56,4 +58,5 @@ export interface BallotEntry {
   poll_id: string
   option_id: string
   rank_position: number
+  vote_id: string | null
 }

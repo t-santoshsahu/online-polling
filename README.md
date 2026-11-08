@@ -47,9 +47,13 @@ Apply the `20261108180000_poll_option_galleries.sql` Supabase migration before d
 
 ## Admin Poll Management
 
-Admins can edit poll details, deadline, targeted flats, result visibility, and option text and images. Once a vote has been cast, the voting method, voter restriction, and number of options are locked to preserve ballot integrity. Changing the wording or images after voting starts can change the meaning of recorded votes, so the form asks for confirmation.
+Admins can edit poll details, deadline, targeted flats, result visibility, response privacy, and option text and images. Once a vote has been cast, the voting method, voter restriction, response privacy, and number of options are locked to preserve vote integrity. Changing the wording or images after voting starts can change the meaning of recorded votes, so the form asks for confirmation.
 
-Admins can view results regardless of the visibility setting. Deleting a poll permanently deletes its options, target flats, votes, and ballot entries. Apply the `20261108190000_admin_poll_management.sql` migration before deploying these controls; obtain approval before applying it to production.
+Admins can view results regardless of the visibility setting. Deleting a poll permanently deletes its options, target flats, votes, and choices. Apply the `20261108190000_admin_poll_management.sql` migration before deploying these controls; obtain approval before applying it to production.
+
+## Vote Privacy
+
+After applying `20261109200000_identified_votes.sql`, admins can select response privacy for each poll. New polls default to recording voters' choices; database administrators can identify how a person voted. Anonymous polls do not link choices to voter records, although the voter and flat are still recorded to prevent duplicate votes. Existing polls remain anonymous and existing choices cannot reliably be attributed to voters. Privacy cannot be changed after a vote. The application shows aggregate results only; individual choices are not exposed to regular users. Apply the migration before deploying the updated admin interface.
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
