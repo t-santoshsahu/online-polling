@@ -16,7 +16,7 @@ export interface UserProfile {
   name: string
   contact: string | null
   flat_number: string
-  resident_type: ResidentType
+  resident_types: ResidentType[]
   role: UserRole
 }
 
@@ -42,8 +42,9 @@ export interface PollOption {
 export interface Vote {
   id: string
   poll_id: string
+  voter_user_id: string | null
   flat_number: string
-  resident_type: ResidentType
+  resident_type: ResidentType | null
   voted_at: string
 }
 

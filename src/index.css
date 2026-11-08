@@ -2,6 +2,8 @@
 
 :root {
   font-family: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+  color: #1d3029;
+  background: #f1f3ed;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -9,21 +11,98 @@
   font-optical-sizing: auto;
   letter-spacing: 0;
   font-weight: 400;
-  background: #f6f7f2;
+
+  --ink: #1d3029;
+  --muted: #64736a;
+  --paper: #f1f3ed;
+  --surface: #fbfcf8;
+  --line: #d9e0d7;
+  --forest: #1b4539;
+  --leaf: #39745a;
+  --citrus: #d5e36a;
+  --coral: #c76547;
+}
+
+html {
+  min-width: 320px;
+  background: var(--paper);
 }
 
 body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  background-color: var(--paper);
+  background-image: linear-gradient(rgba(27, 69, 57, 0.025) 1px, transparent 1px);
+  background-size: 100% 32px;
+}
+
+#root {
+  min-height: 100vh;
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
+button {
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+input,
+select,
+textarea {
+  border-radius: 7px;
+}
+
+input[type="radio"] {
+  accent-color: var(--leaf);
+}
+
+:focus-visible {
+  outline: 3px solid rgba(213, 227, 106, 0.9);
+  outline-offset: 2px;
+}
+
 ::selection {
-  color: #fff;
-  background: #527247;
+  color: var(--ink);
+  background: var(--citrus);
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise-in {
+  animation: rise-in 420ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

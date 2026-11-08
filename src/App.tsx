@@ -116,67 +116,97 @@ function App() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f7f2] text-[#20251f]">
-      <header className="border-b border-[#d9ded5] bg-white">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-8">
-          <a className="text-lg font-semibold tracking-normal" href="/">
-            Society Polling
+    <main className="min-h-screen text-[var(--ink)]">
+      <header className="relative z-10 border-b border-white/10 bg-[var(--forest)] text-white shadow-[0_8px_24px_rgba(29,48,41,0.12)]">
+        <div className="mx-auto flex min-h-[72px] max-w-[1440px] flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-8 lg:px-12">
+          <a className="group flex items-center gap-3" href="/">
+            <span className="grid size-10 place-items-center rounded-xl bg-[var(--citrus)] text-sm font-black text-[var(--forest)] shadow-inner">SP</span>
+            <span className="grid leading-tight">
+              <span className="text-base font-semibold tracking-normal">Society Polling</span>
+              <span className="mt-0.5 text-[10px] font-medium uppercase text-white/55">Community decisions</span>
+            </span>
           </a>
           {user ? (
-            <div className="flex items-center gap-4">
-              <span className="hidden text-sm text-[#667064] sm:inline">{user.email}</span>
-              <button className="text-sm font-semibold text-[#355f3a] hover:underline" type="button" onClick={() => void handleSignOut()}>
+            <div className="flex items-center gap-3 sm:gap-5">
+              <span className="hidden rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-white/75 sm:inline">{user.email}</span>
+              <button className="rounded-lg border border-white/20 px-3 py-2 text-sm font-semibold text-white hover:border-[var(--citrus)] hover:text-[var(--citrus)]" type="button" onClick={() => void handleSignOut()}>
                 Sign out
               </button>
             </div>
-          ) : <span className="text-sm text-[#667064]">Resident voting</span>}
+          ) : <span className="flex items-center gap-2 text-xs font-medium text-white/65"><span className="size-2 rounded-full bg-[var(--citrus)]" /> Resident access</span>}
         </div>
       </header>
 
       {!isSupabaseConfigured ? (
-        <section className="mx-auto max-w-6xl px-5 py-12 sm:px-8">
-          <h1 className="text-3xl font-semibold">Community voting</h1>
-          <p className="mt-3 max-w-xl text-[#596257]">Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your local environment to enable sign-in.</p>
+        <section className="mx-auto max-w-6xl px-5 py-16 sm:px-8 lg:py-24">
+          <p className="text-xs font-bold uppercase text-[var(--coral)]">Setup required</p>
+          <h1 className="mt-3 font-serif text-3xl font-semibold sm:text-4xl">Community voting</h1>
+          <p className="mt-4 max-w-xl text-[var(--muted)]">Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your local environment to enable sign-in.</p>
         </section>
       ) : authLoading || profileLoading ? (
-        <section className="mx-auto max-w-6xl px-5 py-12 text-sm text-[#667064] sm:px-8" role="status">Checking your session...</section>
+        <section className="mx-auto flex min-h-[60vh] max-w-6xl items-center px-5 py-12 text-sm text-[var(--muted)] sm:px-8" role="status">
+          <span className="mr-3 size-2 animate-pulse rounded-full bg-[var(--leaf)]" />Checking your session...
+        </section>
       ) : user && profileRole ? (
-        <section className="mx-auto max-w-6xl px-5 py-8 sm:px-8">
+        <section className="rise-in mx-auto max-w-[1440px] px-5 py-7 sm:px-8 lg:px-12 lg:py-10">
           {profileRole === 'admin' && (
-            <nav className="mb-8 flex gap-1 border-b border-[#d9ded5]" aria-label="Dashboard views">
-              <button className={`border-b-2 px-4 py-3 text-sm font-semibold ${view === 'voting' ? 'border-[#527247] text-[#355f3a]' : 'border-transparent text-[#667064]'}`} type="button" onClick={() => setView('voting')}>Open polls</button>
-              <button className={`border-b-2 px-4 py-3 text-sm font-semibold ${view === 'admin' ? 'border-[#527247] text-[#355f3a]' : 'border-transparent text-[#667064]'}`} type="button" onClick={() => setView('admin')}>Administration</button>
+            <nav className="mb-8 inline-flex max-w-full gap-1 overflow-x-auto rounded-xl border border-[var(--line)] bg-white/75 p-1 shadow-sm" aria-label="Dashboard views">
+              <button className={`whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-semibold ${view === 'voting' ? 'bg-[var(--forest)] text-white shadow-sm' : 'text-[var(--muted)] hover:bg-[var(--paper)] hover:text-[var(--ink)]'}`} type="button" onClick={() => setView('voting')}>Open polls</button>
+              <button className={`whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-semibold ${view === 'admin' ? 'bg-[var(--forest)] text-white shadow-sm' : 'text-[var(--muted)] hover:bg-[var(--paper)] hover:text-[var(--ink)]'}`} type="button" onClick={() => setView('admin')}>Administration</button>
             </nav>
           )}
           {view === 'admin' && profileRole === 'admin' ? <AdminDashboard /> : <VotingDashboard />}
-          {message && <p className="mt-4 text-sm text-[#a84435]" role="alert">{message}</p>}
+          {message && <p className="mt-5 rounded-lg border border-[#e9c4b8] bg-[#fff4ef] px-4 py-3 text-sm text-[#8e422d]" role="alert">{message}</p>}
         </section>
       ) : user ? (
-        <section className="mx-auto max-w-6xl px-5 py-12 sm:px-8">
-          <h1 className="text-2xl font-semibold">Account not registered</h1>
-          <p className="mt-2 text-sm text-[#596257]">Your email has no linked resident profile. Contact a society administrator.</p>
-          {message && <p className="mt-3 text-sm text-[#a84435]" role="alert">{message}</p>}
+        <section className="rise-in mx-auto max-w-3xl px-5 py-16 sm:px-8">
+          <div className="border-l-4 border-[var(--coral)] bg-white p-6 shadow-[0_12px_30px_rgba(29,48,41,0.06)] sm:p-8">
+            <p className="text-xs font-bold uppercase text-[var(--coral)]">Profile required</p>
+            <h1 className="mt-2 font-serif text-2xl font-semibold sm:text-3xl">Account not registered</h1>
+            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">Your email has no linked resident profile. Contact a society administrator.</p>
+            {message && <p className="mt-4 rounded-lg bg-[#fff4ef] px-4 py-3 text-sm text-[#8e422d]" role="alert">{message}</p>}
+          </div>
         </section>
       ) : (
-        <section className="mx-auto grid min-h-[calc(100vh-73px)] max-w-6xl content-center gap-10 px-5 py-12 sm:px-8 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-          <div>
-            <p className="mb-3 text-sm font-semibold uppercase tracking-[0.12em] text-[#527247]">Housing society elections and decisions</p>
-            <h1 className="max-w-2xl text-4xl font-semibold leading-tight sm:text-5xl">A clear place for every community vote.</h1>
-            <p className="mt-5 max-w-xl text-lg leading-7 text-[#596257]">Sign in with your registered email to take part in polls for your society.</p>
+        <section className="mx-auto grid min-h-[calc(100svh-72px)] max-w-[1440px] items-center gap-5 px-4 py-4 sm:gap-8 sm:px-8 sm:py-8 md:grid-cols-[1fr_0.88fr] md:gap-8 lg:gap-12 lg:px-12 lg:py-10">
+          <div className="rise-in relative flex min-h-[300px] flex-col justify-between overflow-hidden rounded-2xl bg-[var(--forest)] p-5 text-white shadow-[0_24px_70px_rgba(27,69,57,0.18)] sm:p-10 md:min-h-[440px] md:p-8 lg:min-h-[590px] lg:p-12">
+            <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'linear-gradient(135deg, transparent 48%, rgba(213,227,106,.18) 48.2%, transparent 48.6%), linear-gradient(45deg, transparent 72%, rgba(255,255,255,.1) 72.2%, transparent 72.5%)' }} />
+            <div className="relative">
+              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1.5 text-[10px] font-bold uppercase text-[var(--citrus)]">
+                <span className="size-1.5 rounded-full bg-[var(--citrus)]" /> Your community, your voice
+              </span>
+              <h1 className="mt-5 max-w-2xl font-serif text-[2rem] font-medium leading-[1.08] sm:mt-8 sm:text-5xl md:mt-6 md:text-4xl lg:mt-8 lg:text-6xl">
+                Decisions are better when everyone has a say.
+              </h1>
+              <p className="mt-3 max-w-lg text-[13px] leading-5 text-white/70 sm:mt-5 sm:text-base sm:leading-7 md:mt-4 md:text-sm lg:mt-5 lg:text-base">
+                A secure place for residents to take part in society polls and shared decisions.
+              </p>
+            </div>
+            <div className="relative mt-6 flex items-end justify-between gap-4 border-t border-white/15 pt-4 sm:mt-10 sm:pt-5">
+              <p className="text-[11px] leading-4 text-white/55 sm:text-xs sm:leading-5">Private access for registered society members</p>
+              <span className="font-serif text-4xl leading-none text-[var(--citrus)] sm:text-5xl">01</span>
+            </div>
           </div>
-          <form className="grid gap-4 border-l-4 border-[#527247] bg-white p-6 shadow-sm sm:p-8" onSubmit={otpSent ? handleVerifyOtp : handleRequestOtp}>
-            <h2 className="text-xl font-semibold">Resident sign in</h2>
-            <label className="grid gap-1.5 text-sm font-medium" htmlFor="email">Registered email
-              <input className="border border-[#cbd3c6] px-3 py-2 font-normal outline-none focus:border-[#527247] focus:ring-2 focus:ring-[#527247]/20" id="email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} disabled={otpSent} />
+
+          <form className="rise-in flex flex-col justify-center px-3 py-3 sm:px-8 sm:py-5 md:px-2 lg:px-10" onSubmit={otpSent ? handleVerifyOtp : handleRequestOtp}>
+            <div className="mb-5 sm:mb-8">
+              <p className="text-xs font-bold uppercase text-[var(--coral)]">Member sign in</p>
+              <h2 className="mt-2 font-serif text-3xl font-semibold sm:text-4xl">Welcome back.</h2>
+              <p className="mt-2 text-sm leading-5 text-[var(--muted)] sm:mt-3 sm:leading-6">Use your registered email to access society polls.</p>
+            </div>
+            <label className="grid gap-2 text-sm font-semibold" htmlFor="email">Registered email
+              <input className="min-h-12 rounded-lg border border-[var(--line)] bg-white px-4 font-normal shadow-sm outline-none transition focus:border-[var(--leaf)] focus:ring-4 focus:ring-[var(--leaf)]/10 disabled:bg-[#ecefe8]" id="email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} disabled={otpSent} placeholder="name@example.com" />
             </label>
-            {otpSent && <label className="grid gap-1.5 text-sm font-medium" htmlFor="otp">Email code
-              <input className="border border-[#cbd3c6] px-3 py-2 font-normal outline-none focus:border-[#527247] focus:ring-2 focus:ring-[#527247]/20" id="otp" type="text" inputMode="numeric" autoComplete="one-time-code" required value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, ''))} />
+            {otpSent && <label className="mt-4 grid gap-2 text-sm font-semibold" htmlFor="otp">Email code
+              <input className="min-h-12 rounded-lg border border-[var(--line)] bg-white px-4 font-normal tracking-[0.16em] shadow-sm outline-none transition focus:border-[var(--leaf)] focus:ring-4 focus:ring-[var(--leaf)]/10" id="otp" type="text" inputMode="numeric" autoComplete="one-time-code" required value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, ''))} placeholder="Enter your code" />
             </label>}
-            <button className="min-h-10 bg-[#355f3a] px-4 text-sm font-semibold text-white hover:bg-[#294b2e] disabled:opacity-50" type="submit" disabled={busy}>
-              {busy ? 'Please wait...' : otpSent ? 'Verify & Login' : 'Send Code'}
+            <button className="mt-5 flex min-h-12 items-center justify-center gap-3 rounded-lg bg-[var(--forest)] px-5 text-sm font-bold text-white shadow-[0_8px_18px_rgba(27,69,57,0.16)] hover:bg-[var(--leaf)] disabled:opacity-55" type="submit" disabled={busy}>
+              {busy ? 'Please wait...' : otpSent ? 'Verify & sign in' : 'Send sign-in code'}
+              {!busy && <span aria-hidden="true">→</span>}
             </button>
-            {otpSent && <button className="justify-self-start text-sm font-medium text-[#355f3a] hover:underline" type="button" onClick={() => { setOtpSent(false); setOtp(''); setMessage('') }}>Use a different email</button>}
-            {message && <p className="text-sm text-[#596257]" role="status">{message}</p>}
+            {otpSent && <button className="mt-4 self-start text-sm font-semibold text-[var(--leaf)] hover:text-[var(--forest)] hover:underline" type="button" onClick={() => { setOtpSent(false); setOtp(''); setMessage('') }}>Use a different email</button>}
+            {message && <p className="mt-4 rounded-lg border border-[var(--line)] bg-white px-4 py-3 text-sm leading-5 text-[var(--muted)]" role="status">{message}</p>}
+            <p className="mt-5 border-t border-[var(--line)] pt-3 text-xs leading-5 text-[var(--muted)] sm:mt-8 sm:pt-4">Only emails registered with your housing society can sign in.</p>
           </form>
         </section>
       )}
