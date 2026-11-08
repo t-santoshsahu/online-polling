@@ -1,5 +1,44 @@
 # React + TypeScript + Vite
 
+## Add A User
+
+Run the single-user script from the project root using Node.js 20.12 or newer. Install dependencies with `npm install`. The script requires an authenticated Supabase CLI linked to the target project and a matching `VITE_SUPABASE_URL` in `.env`.
+
+If the CLI is not already authenticated or linked, run:
+
+```sh
+npx supabase login
+npx supabase link --project-ref YOUR_PROJECT_REF
+```
+
+Enter any requested access token or database credentials directly in the terminal. The linked project may be a production database; check the project reference before creating users.
+
+For example, to add an owner:
+
+```sh
+node --env-file=.env scripts/add-user.mjs \
+  --email resident@example.com \
+  --name "Resident Name" \
+  --flat "Koel-001" \
+  --type owner \
+  --contact "9876543210"
+```
+
+Arguments:
+
+- `--email`: User's email address, required.
+- `--name`: User's name, required.
+- `--flat`: Apartment number, required.
+- `--type`: `owner` or `tenant`, required. Owners receive both owner and resident memberships; tenants receive resident membership.
+- `--contact`: Phone number, optional.
+- `--role`: `regular` or `admin`, optional; defaults to `regular`.
+
+Use `--role admin` only for an administrator. The script refuses to overwrite an existing profile or Auth account. On success it prints the project reference, email, Auth ID, profile ID, and resident memberships.
+
+The script creates an Auth account with a randomly generated, discarded password and confirms the email administratively without sending an email or verifying mailbox ownership. It links the account to a new `public.users` profile; residents can sign in using the application's email OTP flow. The script uses the linked project's service role key locally; never expose it in browser code or logs. If a later step fails, the script attempts to remove records created by that invocation and reports any cleanup failure.
+
+Use `node scripts/add-user.mjs --help` for the argument summary and `node --test scripts/add-user.test.mjs` to run the mocked tests.
+
 ## Poll Option Galleries
 
 Each poll option can have up to 20 image links. In the poll form, use Add image to add each Google Drive sharing link or direct image URL. Google Drive images must be shared so anyone with the link can view them. Residents vote for the option, not individual images.
