@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react'
 
-export default function ImageLightbox({ src, alt, className = '' }) {
+export default function ImageLightbox({ src, images, alt, className = '' }) {
   const [open, setOpen] = useState(false)
+  const [imageIndex, setImageIndex] = useState(0)
+  const imageUrls = images?.length ? images : [src]
 
   useEffect(() => {
     if (!open) return
 
     function closeOnEscape(event) {
       if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'ArrowLeft') setImageIndex((index) => (index - 1 + imageUrls.length) % imageUrls.length)
+      if (event.key === 'ArrowRight') setImageIndex((index) => (index + 1) % imageUrls.length)
     }
 
     const previousOverflow = document.body.style.overflow
@@ -18,7 +22,7 @@ export default function ImageLightbox({ src, alt, className = '' }) {
       document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', closeOnEscape)
     }
-  }, [open])
+  }, [open, imageUrls.length])
 
   return (
     <>
@@ -26,9 +30,10 @@ export default function ImageLightbox({ src, alt, className = '' }) {
         className={`group relative block shrink-0 overflow-hidden rounded-lg focus-visible:outline ${className}`}
         type="button"
         aria-label={`View full-size image: ${alt || 'poll option'}`}
-        onClick={() => setOpen(true)}
+        onClick={() => { setImageIndex(0); setOpen(true) }}
       >
-        <img className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105" src={src} alt={alt} />
+        <img className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105" src={imageUrls[0]} alt={alt} />
+        {imageUrls.length > 1 && <span className="absolute right-0 top-0 bg-black/70 px-1 text-xs font-semibold text-white">{imageUrls.length}</span>}
         <span className="absolute inset-x-0 bottom-0 bg-black/55 px-1 py-0.5 text-center text-[9px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">View</span>
       </button>
       {open && (
@@ -52,7 +57,14 @@ export default function ImageLightbox({ src, alt, className = '' }) {
             >
               &times;
             </button>
-            <img className="max-h-[88svh] max-w-full rounded-xl object-contain shadow-2xl" src={src} alt={alt} />
+            <img className="max-h-[75svh] max-w-full rounded-xl object-contain shadow-2xl" src={imageUrls[imageIndex]} alt={alt} />
+            {imageUrls.length > 1 && (
+              <div className="mt-3 flex items-center gap-4 text-white">
+                <button className="grid size-10 place-items-center rounded-full border border-white/50 text-2xl" type="button" aria-label="Previous image" onClick={() => setImageIndex((index) => (index - 1 + imageUrls.length) % imageUrls.length)}>&lsaquo;</button>
+                <span aria-live="polite">{imageIndex + 1} / {imageUrls.length}</span>
+                <button className="grid size-10 place-items-center rounded-full border border-white/50 text-2xl" type="button" aria-label="Next image" onClick={() => setImageIndex((index) => (index + 1) % imageUrls.length)}>&rsaquo;</button>
+              </div>
+            )}
             {alt && <p className="mt-3 max-w-full truncate rounded-full bg-black/50 px-4 py-2 text-sm text-white">{alt}</p>}
           </section>
         </div>

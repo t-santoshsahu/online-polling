@@ -155,7 +155,7 @@ function App() {
               <button className={`whitespace-nowrap rounded-lg px-4 py-2.5 text-sm font-semibold ${view === 'admin' ? 'bg-[var(--forest)] text-white shadow-sm' : 'text-[var(--muted)] hover:bg-[var(--paper)] hover:text-[var(--ink)]'}`} type="button" onClick={() => setView('admin')}>Administration</button>
             </nav>
           )}
-          {view === 'admin' && profileRole === 'admin' ? <AdminDashboard /> : <VotingDashboard />}
+          {view === 'admin' && profileRole === 'admin' ? <AdminDashboard /> : <VotingDashboard isAdmin={profileRole === 'admin'} />}
           {message && <p className="mt-5 rounded-lg border border-[#e9c4b8] bg-[#fff4ef] px-4 py-3 text-sm text-[#8e422d]" role="alert">{message}</p>}
         </section>
       ) : user ? (

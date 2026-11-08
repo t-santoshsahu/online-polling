@@ -12,6 +12,12 @@ const restrictions = [
   ['all_residents', 'All residents, one resident vote per flat'],
   ['all_owners_and_residents', 'All owners and residents, one vote per person'],
 ]
+const resultVisibilityOptions = [
+  ['always', 'Always'],
+  ['after_vote', 'After voter submits a vote'],
+  ['after_close', 'After voting closes'],
+]
+const resultVisibilityLabels = Object.fromEntries(resultVisibilityOptions)
 
 const requiredColumns = ['email', 'name', 'flat_number']
 const restrictionLabels = Object.fromEntries(restrictions)
@@ -144,6 +150,7 @@ export default function AdminDashboard() {
   const [description, setDescription] = useState('')
   const [pollType, setPollType] = useState('single_choice')
   const [restriction, setRestriction] = useState('one_per_flat')
+  const [resultVisibility, setResultVisibility] = useState('always')
   const [deadline, setDeadline] = useState('')
   const [options, setOptions] = useState([
     { text: '', imageUrl: '' },
@@ -155,7 +162,7 @@ export default function AdminDashboard() {
     try {
       const { data, error } = await getSupabaseClient()
         .from('polls')
-        .select('id, title, poll_type, restriction, deadline, is_deleted, created_at')
+        .select('id, title, poll_type, restriction, result_visibility, deadline, is_deleted, created_at')
         .order('created_at', { ascending: false })
       if (error) throw error
       setPolls(data ?? [])
@@ -249,12 +256,14 @@ export default function AdminDashboard() {
         p_options: pollOptions,
         p_flat_scope: flatScope,
         p_flat_numbers: flatScope === 'selected' ? selectedFlats : [],
+        p_result_visibility: resultVisibility,
       })
       if (error) throw error
       setPollMessage('Poll created.')
       setTitle('')
       setDescription('')
       setDeadline('')
+      setResultVisibility('always')
       setOptions([
         { text: '', imageUrl: '' },
         { text: '', imageUrl: '' },
@@ -378,6 +387,11 @@ export default function AdminDashboard() {
               </div>
             )}
           </fieldset>
+          <Field label="When results are visible">
+            <select className={inputClassName} value={resultVisibility} onChange={(event) => setResultVisibility(event.target.value)}>
+              {resultVisibilityOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            </select>
+          </Field>
           <Field label="Deadline (India Standard Time)">
             <input className={inputClassName} type="datetime-local" required value={deadline} onChange={(event) => setDeadline(event.target.value)} />
           </Field>
@@ -460,12 +474,13 @@ export default function AdminDashboard() {
           <p className="py-4 text-sm text-[#667064]">No polls have been created yet.</p>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-[var(--line)]">
-            <table className="w-full min-w-[680px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[820px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b border-[var(--line)] bg-[#edf1e8] text-[10px] uppercase text-[var(--muted)]">
                   <th className="px-3 py-3 pr-4 font-bold sm:px-4">Poll</th>
                   <th className="py-3 pr-4 font-bold">Method</th>
                   <th className="py-3 pr-4 font-bold">Restriction</th>
+                  <th className="py-3 pr-4 font-bold">Results visible</th>
                   <th className="py-3 pr-4 font-bold">Deadline (IST)</th>
                   <th className="py-3 pr-3 font-bold">Status</th>
                 </tr>
@@ -482,6 +497,7 @@ export default function AdminDashboard() {
                       <td className="px-3 py-3 pr-4 font-semibold sm:px-4">{poll.title}</td>
                       <td className="py-3 pr-4">{poll.poll_type === 'ranked_choice' ? 'Ranked choice' : 'Single choice'}</td>
                       <td className="py-3 pr-4">{restrictionLabels[poll.restriction] ?? poll.restriction}</td>
+                      <td className="py-3 pr-4">{resultVisibilityLabels[poll.result_visibility] ?? poll.result_visibility}</td>
                       <td className="py-3 pr-4 whitespace-nowrap">{formatDeadlineIST(poll.deadline)}</td>
                       <td className="py-3">
                         <span className={status === 'Open' ? 'inline-flex rounded-full bg-[#e4efdf] px-2.5 py-1 text-xs font-bold text-[var(--leaf)]' : 'inline-flex rounded-full bg-[#edf0eb] px-2.5 py-1 text-xs font-semibold text-[var(--muted)]'}>{status}</span>

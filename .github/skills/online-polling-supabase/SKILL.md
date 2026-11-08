@@ -76,6 +76,8 @@ As of 2026-11-08, remote migration history was verified to include:
 - `20261108130000_category_aware_poll_visibility.sql`
 - `20261108140000_poll_option_images.sql`
 - `20261108150000_ranked_top_three.sql`
+- `20261108160000_selected_flat_poll_scope.sql`
+- `20261108170000_poll_result_visibility.sql`
 - `20261108150000_ranked_top_three.sql`
 
 ## Application Architecture Notes
@@ -86,10 +88,11 @@ As of 2026-11-08, remote migration history was verified to include:
 - `link_my_user_profile()` matches the signed-in, verified Auth email to one `public.users` row and reconciles `auth_user_id`; its return role must be `admin` or `regular`.
 - Authorization roles are stored in the `public.users.role` enum `user_role` (`admin`/`regular`). Resident categories live in `public.user_resident_types`; a profile may have both `owner` and `resident` memberships. The legacy `users.resident_type` column remains nullable for compatibility and is not authoritative.
 - Poll columns use PostgreSQL enums `public.poll_type` and `public.voting_restriction`. RPC parameters arrive as text and must be explicitly cast when inserted into enum columns.
-- `AdminDashboard.jsx` creates polls through `admin_create_poll_with_options` using structured text/image options and lists polls from `public.polls`. Option text and image URL are independently optional, but each option must have at least one. Public Google Drive share links are converted to thumbnail URLs; Drive files must allow anyone with the link to view.
+- `AdminDashboard.jsx` creates polls through `admin_create_scoped_poll_with_options` using structured text/image options, flat scope, and `result_visibility` (`always`, `after_vote`, `after_close`). Option text and image URL are independently optional, but each option must have at least one. Public Google Drive share links are converted to thumbnail URLs; Drive files must allow anyone with the link to view.
 - Admin CSV accepts `resident_types` separated by semicolons (for example `owner;resident`); the legacy single `resident_type` column remains accepted. Regular users need at least one resident category; admins may have none.
 - `VotingDashboard.jsx` filters to non-deleted polls with future deadlines, fetches options, calls `get_my_poll_vote_status`, and submits ballots through `submit_poll_ballot`. Ranked polls require selecting exactly three options and assigning unique positions 1, 2, and 3; the RPC enforces this contract.
 - `PollResults.jsx` fetches aggregate-only results and listens on private Realtime Broadcast topics; it must not expose individual anonymous ballot entries. Ranked Borda scoring is top-three only: 3, 2, 1 points; unselected options score zero.
+- Poll result visibility is enforced by `can_view_poll_results` and the guarded `get_poll_results` RPC. `get_my_poll_result_status` powers UI messages; `after_vote` means the current user profile submitted a ballot, while `after_close` releases results when the deadline has passed. Admins can view results at all times.
 - `ImageLightbox.jsx` provides the shared accessible full-screen option image viewer used by admin previews, ballots, and results. It closes on Escape, close button, or backdrop click.
 - RLS is enabled. Authenticated `polls` and `poll_options` SELECT policies use `public.can_view_poll(...)`: linked admins can see all polls; residents can see only open, non-deleted polls matching their `user_resident_types` memberships.
 - `votes` stores `voter_user_id` plus flat/category snapshots for duplicate prevention; `ballot_entries` stores choices separately. `all_owners_and_residents` allows one ballot per user profile, not per flat; a dual-category user still gets one ballot. Other existing restrictions retain their flat/category lock behavior. Never query or expose identity through ballot result UI.
@@ -99,6 +102,7 @@ As of 2026-11-08, remote migration history was verified to include:
 - If a successful OTP ends at `Account not registered`, inspect the full profile-link RPC error and verify the profile email matches the verified Auth email. Confirm `20261108000000_reconcile_auth_user_profiles.sql` is remote-applied.
 - If profile linking returns `null`, compare remote migration history and the live `pg_get_functiondef('public.link_my_user_profile()'::regprocedure)`. The applied replacement raises on missing/invalid role instead of silently returning null.
 - If a poll is in the database but absent from a dashboard, first check `is_deleted`, `deadline`, and database `now()`. Then check category membership and `public.can_view_poll(...)` RLS policies for both `polls` and `poll_options`.
+- If results are hidden or an RPC returns `Poll results are not available yet`, verify the poll's `result_visibility`, deadline, and whether the current voter profile has a row in `votes` for that poll.
 - If poll creation returns SQLSTATE `42804` with an enum mismatch, cast RPC text arguments to the live enum types. The verified live types are `public.poll_type` and `public.voting_restriction`.
 - Poll option images use existing `poll_options.image_url`; results are returned by `get_poll_results` with the image URL, while ballot choices remain anonymous.
 - Verify database facts with read-only CLI queries before editing frontend filters or changing remote data.

@@ -1,6 +1,7 @@
 export type ResidentType = 'owner' | 'resident'
 export type UserRole = 'admin' | 'regular'
 export type PollType = 'single_choice' | 'ranked_choice'
+export type PollResultVisibility = 'always' | 'after_vote' | 'after_close'
 export type PollRestriction =
   | 'one_per_flat'
   | 'owners_only_one_per_flat'
@@ -26,6 +27,7 @@ export interface Poll {
   description: string | null
   poll_type: PollType
   restriction: PollRestriction
+  result_visibility: PollResultVisibility
   deadline: string
   is_deleted: boolean
   created_by: string

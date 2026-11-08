@@ -6,7 +6,7 @@ function formatPercent(value) {
   return `${value.toFixed(1)}%`
 }
 
-export default function PollResults({ pollId, pollType }) {
+export default function PollResults({ pollId, pollType, resultVisibility = 'always', canViewResults, hasPersonVoted, isClosed }) {
   const [results, setResults] = useState([])
   const [totalBallots, setTotalBallots] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -30,6 +30,8 @@ export default function PollResults({ pollId, pollType }) {
   }, [pollId])
 
   useEffect(() => {
+    if (!canViewResults) return undefined
+
     const supabase = getSupabaseClient()
     let refreshTimer
     let channel
@@ -57,7 +59,7 @@ export default function PollResults({ pollId, pollType }) {
       window.clearTimeout(refreshTimer)
       if (channel) void supabase.removeChannel(channel)
     }
-  }, [pollId, refreshResults])
+  }, [pollId, refreshResults, canViewResults])
 
   const rankedResults = [...results].sort((left, right) => {
     const scoreDifference = Number(right.borda_score) - Number(left.borda_score)
@@ -73,7 +75,15 @@ export default function PollResults({ pollId, pollType }) {
         </p>
       </div>
 
-      {loading ? (
+      {!canViewResults ? (
+        <p className="mt-3 rounded-lg bg-[#f0f3eb] px-3 py-2 text-sm text-[var(--muted)]">
+          {resultVisibility === 'after_vote' && !hasPersonVoted
+            ? 'Results will be visible after you submit your vote.'
+            : resultVisibility === 'after_close' && !isClosed
+              ? 'Results will be visible after voting closes.'
+              : 'Results are not available for your account.'}
+        </p>
+      ) : loading ? (
         <p className="mt-3 text-sm text-[var(--muted)]" role="status">Loading results...</p>
       ) : error ? (
         <p className="mt-3 rounded-lg bg-[#fff4ef] px-3 py-2 text-sm text-[#8e422d]" role="alert">{error}</p>

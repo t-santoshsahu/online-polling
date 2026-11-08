@@ -12,11 +12,12 @@ function moveToPosition(items, index, position) {
   return reordered
 }
 
-export default function VotingDashboard() {
+export default function VotingDashboard({ isAdmin = false }) {
   const { user } = useAuth()
   const [polls, setPolls] = useState([])
   const [optionsByPoll, setOptionsByPoll] = useState({})
   const [statuses, setStatuses] = useState({})
+  const [resultAccess, setResultAccess] = useState({})
   const [selectedOptions, setSelectedOptions] = useState({})
   const [rankedOptions, setRankedOptions] = useState({})
   const [busyPollId, setBusyPollId] = useState(null)
@@ -30,9 +31,8 @@ export default function VotingDashboard() {
       const supabase = getSupabaseClient()
       const { data: activePolls, error: pollsError } = await supabase
         .from('polls')
-        .select('id, title, description, poll_type, restriction, deadline')
+        .select('id, title, description, poll_type, restriction, deadline, result_visibility')
         .eq('is_deleted', false)
-        .gt('deadline', new Date().toISOString())
         .order('deadline', { ascending: true })
       if (pollsError) throw pollsError
       setError('')
@@ -42,35 +42,51 @@ export default function VotingDashboard() {
         setPolls([])
         setOptionsByPoll({})
         setStatuses({})
+        setResultAccess({})
         return
       }
 
-      const [optionsResult, statusResult] = await Promise.all([
-        supabase
+      const [statusResult, resultAccessResult] = await Promise.all([
+        supabase.rpc('get_my_poll_vote_status', { p_poll_ids: pollIds }),
+        supabase.rpc('get_my_poll_result_status', { p_poll_ids: pollIds }),
+      ])
+      if (statusResult.error) throw statusResult.error
+      if (resultAccessResult.error) throw resultAccessResult.error
+
+      const statusMap = Object.fromEntries(
+        (statusResult.data ?? []).map((status) => [status.poll_id, status]),
+      )
+      const resultAccessMap = Object.fromEntries(
+        (resultAccessResult.data ?? []).map((status) => [status.poll_id, status]),
+      )
+      const now = Date.now()
+      const visiblePolls = (activePolls ?? []).filter((poll) => {
+        const isOpen = new Date(poll.deadline).getTime() > now
+        return isOpen || resultAccessMap[poll.id]?.can_view_results
+      })
+      const visiblePollIds = visiblePolls.map((poll) => poll.id)
+      const optionsResult = visiblePollIds.length
+        ? await supabase
           .from('poll_options')
           .select('id, poll_id, option_text, image_url, display_order')
-          .in('poll_id', pollIds)
-          .order('display_order', { ascending: true }),
-        supabase.rpc('get_my_poll_vote_status', { p_poll_ids: pollIds }),
-      ])
+          .in('poll_id', visiblePollIds)
+          .order('display_order', { ascending: true })
+        : { data: [], error: null }
       if (optionsResult.error) throw optionsResult.error
-      if (statusResult.error) throw statusResult.error
 
       const groupedOptions = {}
       for (const option of optionsResult.data ?? []) {
         groupedOptions[option.poll_id] ??= []
         groupedOptions[option.poll_id].push(option)
       }
-      const statusMap = Object.fromEntries(
-        (statusResult.data ?? []).map((status) => [status.poll_id, status]),
-      )
 
-      setPolls(activePolls ?? [])
+      setPolls(visiblePolls)
       setOptionsByPoll(groupedOptions)
       setStatuses(statusMap)
+      setResultAccess(resultAccessMap)
       setRankedOptions((previous) => {
         const next = { ...previous }
-        for (const poll of activePolls ?? []) {
+        for (const poll of visiblePolls) {
           next[poll.id] ??= []
         }
         return next
@@ -176,7 +192,15 @@ export default function VotingDashboard() {
                   </span>
                 </div>
 
-                <PollResults pollId={poll.id} pollType={poll.poll_type} />
+                <PollResults
+                  pollId={poll.id}
+                  pollType={poll.poll_type}
+                  resultVisibility={poll.result_visibility}
+                  canViewResults={isAdmin || resultAccess[poll.id]?.can_view_results === true}
+                  hasPersonVoted={resultAccess[poll.id]?.has_person_voted === true}
+                  isClosed={expired}
+                  isAdmin={isAdmin}
+                />
 
                 {status?.has_voted ? (
                   <p className="mt-4 rounded-lg bg-[#edf4e9] px-3 py-2 text-sm font-semibold text-[var(--leaf)]">
