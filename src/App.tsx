@@ -176,11 +176,8 @@ function App() {
                 <span className="size-1.5 rounded-full bg-[var(--citrus)]" /> Your community, your voice
               </span>
               <h1 className="mt-5 max-w-2xl font-serif text-[2rem] font-medium leading-[1.08] sm:mt-8 sm:text-5xl md:mt-6 md:text-4xl lg:mt-8 lg:text-6xl">
-                Decisions are better when everyone has a say.
+                Online Voting App for Societies
               </h1>
-              <p className="mt-3 max-w-lg text-[13px] leading-5 text-white/70 sm:mt-5 sm:text-base sm:leading-7 md:mt-4 md:text-sm lg:mt-5 lg:text-base">
-                A secure place for residents to take part in society polls and shared decisions.
-              </p>
             </div>
             <div className="relative mt-6 flex items-end justify-between gap-4 border-t border-white/15 pt-4 sm:mt-10 sm:pt-5">
               <p className="text-[11px] leading-4 text-white/55 sm:text-xs sm:leading-5">Private access for registered society members</p>

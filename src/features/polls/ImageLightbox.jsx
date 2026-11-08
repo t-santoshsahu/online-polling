@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 export default function ImageLightbox({ src, images, alt, className = '' }) {
   const [open, setOpen] = useState(false)
@@ -51,16 +52,16 @@ export default function ImageLightbox({ src, images, alt, className = '' }) {
         ref={triggerRef}
         className={`group relative block shrink-0 overflow-hidden rounded-lg focus-visible:outline ${className}`}
         type="button"
-        aria-label={`View full-size image: ${alt || 'poll option'}`}
+        aria-label={imageUrls.length > 1 ? `View ${imageUrls.length} photos: ${alt || 'poll option'}` : `View full-size image: ${alt || 'poll option'}`}
         onClick={() => { setImageIndex(0); setOpen(true) }}
       >
         <img className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105" src={imageUrls[0]} alt={alt} />
-        {imageUrls.length > 1 && <span className="absolute right-0 top-0 bg-black/70 px-1 text-xs font-semibold text-white">{imageUrls.length}</span>}
+        {imageUrls.length > 1 && <span aria-hidden="true" className="absolute right-0 top-0 rounded-bl-md bg-black/80 px-1 py-0.5 text-[10px] font-semibold leading-tight text-white">{imageUrls.length} photos</span>}
         <span className="absolute inset-x-0 bottom-0 bg-black/55 px-1 py-0.5 text-center text-[9px] font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">View</span>
       </button>
-      {open && (
+      {open && createPortal(
         <div
-          className="fixed inset-0 z-[100] bg-[#101814]/95"
+          className="fixed inset-0 z-[100] h-[100dvh] w-full bg-[#101814]/95"
           role="presentation"
           onClick={() => setOpen(false)}
         >
@@ -86,7 +87,7 @@ export default function ImageLightbox({ src, images, alt, className = '' }) {
               </button>
             </header>
             <div
-              className="flex min-h-0 flex-1 items-center justify-center px-3 sm:px-8"
+              className="relative flex min-h-0 flex-1 items-center justify-center px-3 sm:px-16"
               style={{ touchAction: 'pan-y pinch-zoom' }}
               onClick={(event) => { if (event.target === event.currentTarget && Date.now() - lastSwipe.current > 500) setOpen(false) }}
               onTouchStart={(event) => {
@@ -106,17 +107,21 @@ export default function ImageLightbox({ src, images, alt, className = '' }) {
               }}
               onTouchCancel={() => { touchStart.current = null }}
             >
-              <img className="max-h-full max-w-full object-contain" src={imageUrls[imageIndex]} alt={alt} draggable="false" />
+              <img className="h-full w-full object-contain" src={imageUrls[imageIndex]} alt={alt} draggable="false" />
+              {imageUrls.length > 1 && (
+                <>
+                  <button className="absolute left-2 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full border border-white/50 bg-black/70 text-3xl leading-none hover:bg-[#39745a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white sm:left-4" type="button" aria-label="Previous image" onClick={() => setImageIndex((index) => (index - 1 + imageUrls.length) % imageUrls.length)}>&lsaquo;</button>
+                  <button className="absolute right-2 top-1/2 grid size-11 -translate-y-1/2 place-items-center rounded-full border border-white/50 bg-black/70 text-3xl leading-none hover:bg-[#39745a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white sm:right-4" type="button" aria-label="Next image" onClick={() => setImageIndex((index) => (index + 1) % imageUrls.length)}>&rsaquo;</button>
+                </>
+              )}
             </div>
             {imageUrls.length > 1 && (
-              <nav className="flex min-h-20 shrink-0 items-center justify-center gap-6 px-4" aria-label="Image gallery navigation">
-                <button className="grid size-12 place-items-center rounded-full border border-white/50 bg-[#1d3029] text-3xl leading-none hover:bg-[#39745a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white" type="button" aria-label="Previous image" onClick={() => setImageIndex((index) => (index - 1 + imageUrls.length) % imageUrls.length)}>&lsaquo;</button>
+              <nav className="flex min-h-12 shrink-0 items-center justify-center px-4" aria-label="Image gallery navigation">
                 <span className="min-w-16 text-center text-sm font-semibold tabular-nums" aria-live="polite">{imageIndex + 1} / {imageUrls.length}</span>
-                <button className="grid size-12 place-items-center rounded-full border border-white/50 bg-[#1d3029] text-3xl leading-none hover:bg-[#39745a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white" type="button" aria-label="Next image" onClick={() => setImageIndex((index) => (index + 1) % imageUrls.length)}>&rsaquo;</button>
               </nav>
             )}
           </section>
-        </div>
+        </div>, document.body
       )}
     </>
   )

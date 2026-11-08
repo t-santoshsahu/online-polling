@@ -229,7 +229,7 @@ export default function VotingDashboard({ isAdmin = false }) {
                             <label className="min-w-0 flex-1 cursor-pointer font-medium" htmlFor={`option-${poll.id}-${option.id}`}>
                               {option.option_text || `Image option ${option.display_order}`}
                             </label>
-                            {option.image_url && <ImageLightbox className="size-14 rounded-lg bg-[#edf1e8]" src={option.image_url} images={option.image_urls} alt={option.option_text || `Option ${option.display_order}`} />}
+                            {option.image_url && <ImageLightbox className="size-24 rounded-lg bg-[#edf1e8] sm:size-28" src={option.image_url} images={option.image_urls} alt={option.option_text || `Option ${option.display_order}`} />}
                           </div>
                         ))}
                       </fieldset>
@@ -262,7 +262,7 @@ export default function VotingDashboard({ isAdmin = false }) {
                                   }))
                                 }}
                               />
-                              {option.image_url && <ImageLightbox className="size-12 rounded-lg bg-[#edf1e8]" src={option.image_url} images={option.image_urls} alt={label} />}
+                              {option.image_url && <ImageLightbox className="size-24 rounded-lg bg-[#edf1e8] sm:size-28" src={option.image_url} images={option.image_urls} alt={label} />}
                               <span className="min-w-[7rem] flex-1 text-sm font-medium">{label}</span>
                               {isSelected && (
                                 <label className="flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">
