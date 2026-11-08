@@ -1,0 +1,1 @@
+export { getSupabaseClient, isSupabaseConfigured } from '../supabaseClient.js'
