@@ -33,7 +33,7 @@ Arguments:
 - `--contact`: Phone number, optional.
 - `--role`: `regular` or `admin`, optional; defaults to `regular`.
 
-Use `--role admin` only for an administrator. The script refuses to overwrite an existing profile or Auth account. On success it prints the project reference, email, Auth ID, profile ID, and resident memberships.
+Use `--role admin` only for an administrator. The script refuses to overwrite an existing public profile. If the email already exists in Supabase Auth but has no public profile, the script links that Auth account to the new profile instead of creating a duplicate. On success it prints the project reference, email, Auth ID, profile ID, resident memberships, and whether it created the Auth account.
 
 The script creates an Auth account with a randomly generated, discarded password and confirms the email administratively without sending an email or verifying mailbox ownership. It links the account to a new `public.users` profile; residents can sign in using the application's email OTP flow. The script uses the linked project's service role key locally; never expose it in browser code or logs. If a later step fails, the script attempts to remove records created by that invocation and reports any cleanup failure.
 

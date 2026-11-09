@@ -235,7 +235,7 @@ export default function VotingDashboard({ isAdmin = false }) {
                       </fieldset>
                     ) : (
                       <fieldset className="grid gap-2">
-                        <legend className="mb-1 text-sm font-medium">Choose exactly three, then assign positions</legend>
+                        <legend className="mb-1 text-sm font-medium">Choose exactly three and rank them: 1st = 5 pts, 2nd = 3 pts, 3rd = 1 pt</legend>
                         <p className="text-xs text-[var(--muted)]">Selected: {orderedOptions.length} of 3</p>
                         {pollOptions.map((option) => {
                           const selectedIndex = orderedIds.indexOf(option.id)

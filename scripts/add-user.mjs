@@ -39,19 +39,41 @@ export function parseUserArguments(args) {
   return { email, name, flat, type, role, contact: values.contact?.trim() || null }
 }
 
+async function findAuthUserByEmail(supabase, email) {
+  const perPage = 1000
+  for (let page = 1; ; page += 1) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage })
+    if (error) throw error
+    const users = data.users ?? []
+    const match = users.find((candidate) => candidate.email?.trim().toLowerCase() === email)
+    if (match) return match
+    if (users.length < perPage) return null
+  }
+}
+
 export async function createUser(supabase, user) {
   const pattern = user.email.replace(/[\\%_]/g, '\\$&')
   const { data: existing, error: lookupError } = await supabase.from('users').select('id').ilike('email', pattern).limit(1)
   if (lookupError) throw lookupError
   if (existing.length) throw new Error('A public profile already exists for this email; no changes were made.')
 
-  const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-    email: user.email,
-    password: randomBytes(32).toString('base64url'),
-    email_confirm: true,
-  })
-  if (authError) throw authError
-  const authId = authData.user.id
+  let authUser = await findAuthUserByEmail(supabase, user.email)
+  let authCreated = false
+  if (!authUser) {
+    const { data, error } = await supabase.auth.admin.createUser({
+      email: user.email,
+      password: randomBytes(32).toString('base64url'),
+      email_confirm: true,
+    })
+    if (error) {
+      authUser = await findAuthUserByEmail(supabase, user.email)
+      if (!authUser) throw error
+    } else {
+      authUser = data.user
+      authCreated = true
+    }
+  }
+  const authId = authUser.id
   let profileId
   try {
     const { data: profile, error: profileError } = await supabase.from('users').insert({
@@ -71,11 +93,14 @@ export async function createUser(supabase, user) {
       types.map((residentType) => ({ user_id: profileId, resident_type: residentType })),
     )
     if (membershipError) throw membershipError
-    return { authId, profileId, residentTypes: types }
+    return { authId, profileId, residentTypes: types, authCreated }
   } catch (error) {
     if (profileId) {
       const { error: cleanupError } = await supabase.from('users').delete().eq('id', profileId)
       if (cleanupError) throw new Error(`Profile creation failed: ${error.message}. Cleanup failed for profile ${profileId} and Auth user ${authId}: ${cleanupError.message}`)
+    }
+    if (!authCreated) {
+      throw new Error(`Profile creation failed: ${error.message}. The existing Auth account ${authId} was retained.`)
     }
     const { error: cleanupError } = await supabase.auth.admin.deleteUser(authId)
     if (cleanupError) throw new Error(`Profile creation failed: ${error.message}. Cleanup failed for Auth user ${authId}: ${cleanupError.message}`)

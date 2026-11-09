@@ -2,11 +2,12 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { createUser, parseUserArguments } from './add-user.mjs'
 
-function client({ existing = [], authError = null, profileError = null, membershipError = null, cleanupError = null } = {}) {
+function client({ existing = [], authUsers = [], authError = null, profileError = null, membershipError = null, cleanupError = null } = {}) {
   const calls = []
   return {
     calls,
     auth: { admin: {
+      async listUsers(options) { calls.push(['list-auth', options]); return { data: { users: authUsers }, error: null } },
       async createUser(payload) { calls.push(['auth', payload]); return { data: { user: { id: 'auth-id' } }, error: authError } },
       async deleteUser(id) { calls.push(['delete-auth', id]); return { error: cleanupError } },
     } },
@@ -38,6 +39,7 @@ test('creates an owner and resident without sending email', async () => {
   const supabase = client()
   const result = await createUser(supabase, user)
   assert.deepEqual(result.residentTypes, ['owner', 'resident'])
+  assert.equal(result.authCreated, true)
   const auth = supabase.calls.find(([operation]) => operation === 'auth')[1]
   assert.equal(auth.email_confirm, true)
   assert.ok(auth.password.length >= 32)
@@ -57,7 +59,22 @@ test('does not modify an existing profile or Auth account', async () => {
   assert.equal(supabase.calls.length, 1)
   const duplicateAuth = client({ authError: new Error('already registered') })
   await assert.rejects(createUser(duplicateAuth, user), /already registered/)
-  assert.equal(duplicateAuth.calls.length, 2)
+  assert.deepEqual(duplicateAuth.calls.map(([operation]) => operation), ['lookup', 'list-auth', 'auth', 'list-auth'])
+})
+
+test('links an existing Auth account to a new owner profile', async () => {
+  const supabase = client({ authUsers: [{ id: 'existing-auth-id', email: 'PERSON@example.com' }] })
+  const result = await createUser(supabase, user)
+  assert.equal(result.authId, 'existing-auth-id')
+  assert.equal(result.authCreated, false)
+  assert.equal(supabase.calls.some(([operation]) => operation === 'auth'), false)
+  assert.equal(supabase.calls.find(([operation, table]) => operation === 'insert' && table === 'users')[2].auth_user_id, 'existing-auth-id')
+})
+
+test('retains a pre-existing Auth account if profile creation fails', async () => {
+  const supabase = client({ authUsers: [{ id: 'existing-auth-id', email: user.email }], profileError: new Error('profile failed') })
+  await assert.rejects(createUser(supabase, user), /existing Auth account existing-auth-id was retained/)
+  assert.equal(supabase.calls.some(([operation]) => operation === 'delete-auth'), false)
 })
 
 test('cleans up new records on membership failure', async () => {
