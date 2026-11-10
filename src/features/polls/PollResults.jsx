@@ -104,7 +104,6 @@ export default function PollResults({ pollId, pollType, entryPoints = 0, resultV
               </span>
               <span className="shrink-0 rounded-md bg-[#f0f3eb] px-2 py-1 text-xs font-bold tabular-nums text-[var(--leaf)]">
                 {Number(option.borda_score) + entryPoints} pts
-                {entryPoints > 0 && <span className="block text-[9px] font-medium">{entryPoints} entry + {option.borda_score} ranked</span>}
               </span>
             </li>
           ))}
