@@ -30,6 +30,7 @@ export interface Poll {
   restriction: PollRestriction
   result_visibility: PollResultVisibility
   response_privacy: PollResponsePrivacy
+  entry_points: number
   deadline: string
   is_deleted: boolean
   created_by: string

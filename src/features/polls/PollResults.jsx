@@ -6,7 +6,7 @@ function formatPercent(value) {
   return `${value.toFixed(1)}%`
 }
 
-export default function PollResults({ pollId, pollType, resultVisibility = 'always', canViewResults, hasPersonVoted, isClosed }) {
+export default function PollResults({ pollId, pollType, entryPoints = 0, resultVisibility = 'always', canViewResults, hasPersonVoted, isClosed }) {
   const [results, setResults] = useState([])
   const [totalBallots, setTotalBallots] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -102,7 +102,10 @@ export default function PollResults({ pollId, pollType, resultVisibility = 'alwa
                 {option.image_url && <ImageLightbox className="size-10 rounded-lg bg-[#edf1e8]" src={option.image_url} images={option.image_urls} alt={option.option_text || `Option ${index + 1}`} />}
                 <span className="truncate">{option.option_text || `Image option ${index + 1}`}</span>
               </span>
-              <span className="shrink-0 rounded-md bg-[#f0f3eb] px-2 py-1 text-xs font-bold tabular-nums text-[var(--leaf)]">{option.borda_score} pts</span>
+              <span className="shrink-0 rounded-md bg-[#f0f3eb] px-2 py-1 text-xs font-bold tabular-nums text-[var(--leaf)]">
+                {Number(option.borda_score) + entryPoints} pts
+                {entryPoints > 0 && <span className="block text-[9px] font-medium">{entryPoints} entry + {option.borda_score} ranked</span>}
+              </span>
             </li>
           ))}
           {rankedResults.length === 0 && <li className="py-3 text-sm text-[var(--muted)]">No ranked votes yet.</li>}

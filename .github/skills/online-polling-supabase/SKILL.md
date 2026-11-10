@@ -96,6 +96,7 @@ As of 2026-11-08, remote migration history was verified to include:
 - `ImageLightbox.jsx` provides the shared accessible full-screen option image viewer used by admin previews, ballots, and results. It closes on Escape, close button, or backdrop click.
 - RLS is enabled. Authenticated `polls` and `poll_options` SELECT policies use `public.can_view_poll(...)`: linked admins can see all polls; residents can see only open, non-deleted polls matching their `user_resident_types` memberships.
 - `votes` stores `voter_user_id` plus flat/category snapshots for duplicate prevention. After migration `20261109200000_identified_votes.sql`, new `ballot_entries` reference the corresponding vote only for polls with identified response privacy; existing polls remain anonymous and new polls default to identified. Privacy cannot change after votes exist. Ordinary users receive aggregate-only results. `all_owners_and_residents` allows one vote per user profile, not per flat; a dual-category user still gets one vote. Other restrictions retain their flat/category lock behavior.
+- `polls.entry_points` is a fixed per-entry participation award, added to displayed ranked totals independently of voting scores. The current Rangoli and Door Decor Residents Choice polls receive 10; other polls default to zero.
 
 ## Troubleshooting Checks
 

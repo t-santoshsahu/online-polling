@@ -55,6 +55,10 @@ Admins can view results regardless of the visibility setting. Deleting a poll pe
 
 After applying `20261109200000_identified_votes.sql`, admins can select response privacy for each poll. New polls default to recording voters' choices; database administrators can identify how a person voted. Anonymous polls do not link choices to voter records, although the voter and flat are still recorded to prevent duplicate votes. Existing polls remain anonymous and existing choices cannot reliably be attributed to voters. Privacy cannot be changed after a vote. The application shows aggregate results only; individual choices are not exposed to regular users. Apply the migration before deploying the updated admin interface.
 
+## Entry Points
+
+Polls can award fixed participation points to every entry. This is separate from ranked voting points and does not depend on votes. `20261110210000_poll_entry_points.sql` sets 10 entry points on the current Rangoli and Door Decor Residents Choice polls; other polls default to zero.
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:
